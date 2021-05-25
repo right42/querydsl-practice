@@ -1,5 +1,6 @@
 package me.right42.querydslpractice;
 
+import static me.right42.querydslpractice.entity.QMember.*;
 import static org.assertj.core.api.Assertions.*;
 
 import javax.persistence.Entity;
@@ -56,20 +57,20 @@ class QuerydslBasicTest {
 		Member findMember = entityManager.createQuery(qlString, Member.class)
 			.setParameter("username", "member1")
 			.getSingleResult();
-		;
+		
 
 		assertThat(findMember.getUsername()).isEqualTo("member1");
 	}
 
 	@Test
 	void startQuerydsl(){
-		QMember member = QMember.member;
 
 		Member findMember = query
 			.selectFrom(member)
 			.where(member.username.eq("member1"))
 			.fetchOne();
 
+		assertThat(findMember).isNotNull();
 		assertThat(findMember.getUsername()).isEqualTo("member1");
 	}
 }
