@@ -3,6 +3,8 @@ package me.right42.querydslpractice;
 import static me.right42.querydslpractice.entity.QMember.*;
 import static org.assertj.core.api.Assertions.*;
 
+import java.util.List;
+
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import com.querydsl.core.NonUniqueResultException;
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import me.right42.querydslpractice.entity.Member;
@@ -87,5 +91,27 @@ class QuerydslBasicTest {
 
 		assertThat(findMember).isNotNull();
 		assertThat(findMember.getUsername()).isEqualTo("member1");
+	}
+
+	@Test
+	void queryResult(){
+		// List<Member> fetch = query
+		// 	.selectFrom(member)
+		// 	.fetch();
+
+		assertThatThrownBy(() ->
+			query
+			.selectFrom(member)
+			.fetchOne()
+		)
+		.isInstanceOf(NonUniqueResultException.class)
+		;
+
+		QueryResults<Member> results = query
+			.selectFrom(member)
+			.where(member.age.eq(10))
+			.fetchResults();
+
+		System.out.println(results.getTotal());
 	}
 }
