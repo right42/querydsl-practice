@@ -57,7 +57,7 @@ class QuerydslBasicTest {
 		Member findMember = entityManager.createQuery(qlString, Member.class)
 			.setParameter("username", "member1")
 			.getSingleResult();
-		
+
 
 		assertThat(findMember.getUsername()).isEqualTo("member1");
 	}
@@ -68,6 +68,21 @@ class QuerydslBasicTest {
 		Member findMember = query
 			.selectFrom(member)
 			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		assertThat(findMember).isNotNull();
+		assertThat(findMember.getUsername()).isEqualTo("member1");
+	}
+
+	@Test
+	void search(){
+
+		Member findMember = query
+			.selectFrom(member)
+			.where(
+				member.username.eq("member1"),
+				member.age.eq(10).or(member.age.lt(20))
+			)
 			.fetchOne();
 
 		assertThat(findMember).isNotNull();
