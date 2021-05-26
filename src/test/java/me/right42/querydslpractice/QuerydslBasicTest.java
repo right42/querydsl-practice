@@ -1,5 +1,6 @@
 package me.right42.querydslpractice;
 
+import static com.querydsl.jpa.JPAExpressions.*;
 import static me.right42.querydslpractice.entity.QMember.*;
 import static me.right42.querydslpractice.entity.QTeam.*;
 import static org.assertj.core.api.Assertions.*;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import me.right42.querydslpractice.entity.Member;
@@ -320,6 +322,89 @@ class QuerydslBasicTest {
 		boolean loaded = entityManagerFactory.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
 
 		assertThat(loaded).isTrue();
+	}
+
+	/*
+		나이가 가장 많은사람 조회 where 서브쿼리
+	 */
+	@Test
+	void subQuery(){
+		QMember memberSub = new QMember("memberSub");
+
+		List<Member> result = query
+			.selectFrom(member)
+			.where(
+				member.age.eq(
+					select(memberSub.age.max())
+						.from(memberSub)
+				)
+			)
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(40);
+	}
+
+	/*
+		나이가 평균이상인 회원 조회 GOE where
+	 */
+	@Test
+	void subQueryGOE(){
+		QMember memberSub = new QMember("memberSub");
+		List<Member> result = query
+			.selectFrom(member)
+			.where(
+				member.age.goe(
+					select(memberSub.age.avg())
+						.from(memberSub)
+				)
+			)
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(30, 40);
+	}
+
+	/*
+		나이가 10 초과인 회원 조회 In where
+	 */
+	@Test
+	void subQueryIn(){
+		QMember memberSub = new QMember("memberSub");
+		List<Member> result = query
+			.selectFrom(member)
+			.where(
+				member.age.in(
+					select(memberSub.age)
+					.from(memberSub)
+					.where(memberSub.age.gt(10))
+				)
+			)
+			.fetch();
+
+		assertThat(result).extracting("age")
+			.containsExactly(20, 30, 40);
+	}
+
+	/*
+		select 안에 서브쿼리
+	 */
+	@Test
+	void selectSubQuery(){
+		QMember memberSub = new QMember("memberSub");
+		List<Tuple> result = query
+			.select(
+				member.username,
+				select(memberSub.age.max())
+					.from(memberSub)
+			)
+			.from(member)
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println(tuple);
+		}
+
 	}
 }
 
