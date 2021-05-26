@@ -8,6 +8,8 @@ import java.util.List;
 
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,9 @@ class QuerydslBasicTest {
 	EntityManager entityManager;
 
 	JPAQueryFactory query;
+
+	@PersistenceUnit
+	EntityManagerFactory entityManagerFactory;
 
 	@BeforeEach
 	void beforeEach(){
@@ -213,6 +218,108 @@ class QuerydslBasicTest {
 
 		assertThat(teamB.get(team.name)).isEqualTo("teamB");
 		assertThat(teamB.get(member.age.avg())).isEqualTo(35);
+	}
+
+	/*
+		teamA에 속한 모든 회원
+	 */
+	@Test
+	void join(){
+		List<Member> members = query
+			.selectFrom(member)
+			.join(member.team, team)
+			.where(team.name.eq("teamA"))
+			.fetch();
+
+		assertThat(members)
+			.extracting("username")
+			.containsExactly("member1", "member2");
+	}
+
+	/*
+		팀과 이름이 같은 회원 (세타조인)
+	 */
+	@Test
+	void join2(){
+		entityManager.persist(new Member("teamA"));
+		entityManager.persist(new Member("teamB"));
+
+		List<Member> members = query
+			.select(member)
+			.from(member, team)
+			.where(member.username.eq(team.name))
+			.fetch();
+
+		assertThat(members)
+			.extracting("username")
+			.containsExactly("teamA", "teamB");
+	}
+
+	/*
+		회원과 팀을 조회하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
+	 */
+	@Test
+	void leftJoin(){
+		List<Tuple> teamA = query
+			.select(member, team)
+			.from(member)
+			.leftJoin(member.team, team)
+				.on(team.name.eq("teamA"))
+			.fetch();
+
+		for (Tuple tuple : teamA) {
+			System.out.println(tuple);
+		}
+
+	}
+
+	/*
+		연관관계가 없는 엔티티간의 조인
+		팀의 이름과 멤버의 이름의 같은 경우 팀조회
+	 */
+	@Test
+	void join_no_relation(){
+		entityManager.persist(new Member("teamA"));
+		entityManager.persist(new Member("teamB"));
+		entityManager.persist(new Member("teamC"));
+
+		List<Tuple> result = query
+			.select(member, team)
+			.from(member)
+			.leftJoin(team)
+				.on(team.name.eq(member.username))
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println(tuple);
+		}
+
+	}
+
+	@Test
+	void fetchJoinNo(){
+
+		Member findMember = query
+			.selectFrom(member)
+			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		boolean loaded = entityManagerFactory.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+		assertThat(loaded).isFalse();
+	}
+
+	@Test
+	void fetchJoinUse(){
+		Member findMember = query
+			.selectFrom(member)
+			.join(member.team, team).fetchJoin()
+			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		boolean loaded = entityManagerFactory.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+		assertThat(loaded).isTrue();
 	}
 }
 
