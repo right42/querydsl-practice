@@ -1,6 +1,7 @@
 package me.right42.querydslpractice;
 
 import static me.right42.querydslpractice.entity.QMember.*;
+import static me.right42.querydslpractice.entity.QTeam.*;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
@@ -16,10 +17,12 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import me.right42.querydslpractice.entity.Member;
 import me.right42.querydslpractice.entity.QMember;
+import me.right42.querydslpractice.entity.QTeam;
 import me.right42.querydslpractice.entity.Team;
 
 @DataJpaTest
@@ -114,4 +117,102 @@ class QuerydslBasicTest {
 
 		System.out.println(results.getTotal());
 	}
+
+
+	@Test
+	void sort(){
+		int age = 100;
+		entityManager.persist(new Member("member5", age));
+		entityManager.persist(new Member("member6", age));
+		entityManager.persist(new Member(null, age));
+
+		List<Member> members = query
+			.selectFrom(member)
+			.orderBy(member.age.desc(), member.username.asc().nullsLast())
+			.fetch();
+
+		Member member5 = members.get(0);
+		Member member6 = members.get(1);
+		Member memberNull = members.get(2);
+
+		assertThat(member5.getUsername()).isEqualTo("member5");
+		assertThat(member6.getUsername()).isEqualTo("member6");
+		assertThat(memberNull.getUsername()).isNull();
+	}
+
+	@Test
+	void paging1(){
+		List<Member> members = query
+			.selectFrom(member)
+			.orderBy(member.age.desc())
+			.offset(1)
+			.limit(2)
+			.fetch();
+
+		assertThat(members.size()).isEqualTo(2);
+	}
+
+	@Test
+	void paging2(){
+		QueryResults<Member> results = query
+			.selectFrom(member)
+			.orderBy(member.age.desc())
+			.offset(1)
+			.limit(2)
+			.fetchResults();
+
+		assertThat(results.getTotal()).isEqualTo(4);
+		assertThat(results.getLimit()).isEqualTo(2);
+		assertThat(results.getOffset()).isEqualTo(1);
+		assertThat(results.getResults().size()).isEqualTo(2);
+	}
+
+	@Test
+	void grouping1(){
+		List<Tuple> fetch = query
+			.select(
+				member.count(),
+				member.age.max(),
+				member.age.min(),
+				member.age.avg(),
+				member.age.sum()
+			)
+			.from(member)
+			.fetch();
+
+		Tuple tuple = fetch.get(0);
+
+		assertThat(tuple.get(member.count())).isEqualTo(4);
+		assertThat(tuple.get(member.age.max())).isEqualTo(40);
+		assertThat(tuple.get(member.age.min())).isEqualTo(10);
+		assertThat(tuple.get(member.age.avg())).isEqualTo(25);
+		assertThat(tuple.get(member.age.sum())).isEqualTo(100);
+	}
+
+	/*
+		팀별 나이의 평균구하기
+	 */
+	@Test
+	void grouping2(){
+
+		List<Tuple> fetch = query
+			.select(
+				team.name,
+				member.age.avg()
+			)
+			.from(member)
+			.join(member.team, team)
+			.groupBy(team.name)
+			.fetch();
+
+		Tuple teamA = fetch.get(0);
+		Tuple teamB = fetch.get(1);
+
+		assertThat(teamA.get(team.name)).isEqualTo("teamA");
+		assertThat(teamA.get(member.age.avg())).isEqualTo(15);
+
+		assertThat(teamB.get(team.name)).isEqualTo("teamB");
+		assertThat(teamB.get(member.age.avg())).isEqualTo(35);
+	}
 }
+
