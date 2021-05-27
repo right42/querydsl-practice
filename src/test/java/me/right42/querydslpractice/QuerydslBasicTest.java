@@ -21,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -421,6 +422,32 @@ class QuerydslBasicTest {
 
 		for (String s : result) {
 			System.out.println("s = " + s);
+		}
+
+	}
+
+	@Test
+	void constant(){
+		List<Tuple> result = query
+			.select(member.username, Expressions.constant("A"))
+			.from(member)
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println(tuple);
+		}
+	}
+
+	@Test
+	void concat(){
+		List<String> result = query
+			.select(member.username.concat("_").concat(member.age.stringValue()))
+			.from(member)
+			.where(member.username.eq("member1"))
+			.fetch();
+
+		for (String s : result) {
+			System.out.println(s);
 		}
 
 	}
