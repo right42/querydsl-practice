@@ -406,5 +406,23 @@ class QuerydslBasicTest {
 		}
 
 	}
+
+	@Test
+	void basicCase(){
+		List<String> result = query
+			.select(
+				member.age
+					.when(10).then("10살")
+					.when(20).then("20살")
+					.otherwise("기타")
+			)
+			.from(member)
+			.fetch();
+
+		for (String s : result) {
+			System.out.println("s = " + s);
+		}
+
+	}
 }
 
