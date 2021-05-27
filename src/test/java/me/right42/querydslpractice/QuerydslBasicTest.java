@@ -21,10 +21,14 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
+import me.right42.querydslpractice.dto.MemberDto;
+import me.right42.querydslpractice.dto.UserDto;
 import me.right42.querydslpractice.entity.Member;
 import me.right42.querydslpractice.entity.QMember;
 import me.right42.querydslpractice.entity.QTeam;
@@ -449,7 +453,87 @@ class QuerydslBasicTest {
 		for (String s : result) {
 			System.out.println(s);
 		}
+	}
 
+	@Test
+	void findDtoByJPQL(){
+		List<MemberDto> result = entityManager
+			.createQuery("select new me.right42.querydslpractice.dto.MemberDto(m.username, m.age) from Member m",
+				MemberDto.class)
+			.getResultList();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto = " + memberDto);
+		}
+	}
+
+	@Test
+	void findDtoBySetter(){
+		List<MemberDto> result = query.
+			select(Projections.bean(MemberDto.class,
+				member.username,
+				member.age))
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto " + memberDto);
+		}
+	}
+
+	@Test
+	void findDtoByField(){
+		List<MemberDto> result = query
+			.select(
+				Projections.fields(MemberDto.class,
+					member.username,
+					member.age
+				)
+			)
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto " + memberDto);
+		}
+	}
+
+	@Test
+	void findDtoByConstructor(){
+		List<MemberDto> result = query
+			.select(
+				Projections.constructor(MemberDto.class,
+					member.username,
+					member.age
+				)
+			)
+			.from(member)
+			.fetch();
+
+		for (MemberDto memberDto : result) {
+			System.out.println("memberDto " + memberDto);
+		}
+	}
+
+	@Test
+	void findUserDto(){
+		QMember memberSub = new QMember("memberSub");
+		List<UserDto> result = query
+			.select(
+				Projections.fields(UserDto.class,
+					member.username.as("name"),
+
+					ExpressionUtils.as(
+						select(memberSub.age.max())
+							.from(memberSub) ,"age")
+				)
+			)
+			.from(member)
+			.fetch();
+
+		for (UserDto userDto : result) {
+			System.out.println("userDto " + userDto);
+		}
 	}
 }
 
