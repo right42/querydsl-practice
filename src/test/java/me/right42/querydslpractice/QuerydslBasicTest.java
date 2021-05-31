@@ -6,6 +6,7 @@ import static me.right42.querydslpractice.entity.QTeam.*;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
@@ -18,11 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -547,7 +551,67 @@ class QuerydslBasicTest {
 		for (MemberDto memberDto : result) {
 			System.out.println(memberDto);
 		}
+	}
 
+	@Test
+	void dynamicQueryBooleanBuilder(){
+		String usernameParam = "member1";
+		Integer ageParam = 10;
+
+		List<Member> result = searchMember1(usernameParam, ageParam);
+
+		assertThat(result.size()).isEqualTo(1);
+	}
+
+	private List<Member> searchMember1(String usernameParam, Integer ageParam) {
+		BooleanBuilder builder = new BooleanBuilder();
+
+		if(usernameParam != null) {
+			builder.and(member.username.eq(usernameParam));
+		}
+
+		if(ageParam != null) {
+			builder.and(member.age.eq(ageParam));
+		}
+
+		return query
+			.selectFrom(member)
+			.where(builder)
+			.fetch();
+	}
+
+	@Test
+	void dynamicQueryWhereParam(){
+		String usernameParam = "member1";
+		Integer ageParam = null;
+
+		List<Member> result = searchMember2(usernameParam, ageParam);
+
+		assertThat(result.size()).isEqualTo(1);
+	}
+
+	private List<Member> searchMember2(String usernameParam, Integer ageParam) {
+		return query
+			.selectFrom(member)
+			.where(usernameEq(usernameParam), ageEq(ageParam))
+			.fetch();
+
+	}
+
+	private BooleanBuilder usernameEq(String usernameParam) {
+		return nullSafeBuilder(() -> member.username.eq(usernameParam));
+	}
+
+	private BooleanBuilder ageEq(Integer ageParam) {
+		return nullSafeBuilder(() -> member.age.eq(ageParam));
+	}
+
+	private BooleanBuilder nullSafeBuilder(Supplier<BooleanExpression> expression) {
+		try {
+			return new BooleanBuilder(expression.get());
+		} catch (IllegalArgumentException e) {
+			return new BooleanBuilder();
+		}
 	}
 }
 
