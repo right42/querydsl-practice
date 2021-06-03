@@ -593,9 +593,13 @@ class QuerydslBasicTest {
 	private List<Member> searchMember2(String usernameParam, Integer ageParam) {
 		return query
 			.selectFrom(member)
-			.where(usernameEq(usernameParam), ageEq(ageParam))
+			.where(usernameEqExpression(usernameParam), ageEq(ageParam))
 			.fetch();
 
+	}
+
+	private BooleanExpression usernameEqExpression(String username) {
+		return member.username.eq(username);
 	}
 
 	private BooleanBuilder usernameEq(String usernameParam) {
