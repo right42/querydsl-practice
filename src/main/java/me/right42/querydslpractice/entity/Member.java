@@ -1,5 +1,7 @@
 package me.right42.querydslpractice.entity;
 
+import java.time.LocalDateTime;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -32,6 +34,8 @@ public class Member {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "team_id")
 	private Team team;
+
+	private LocalDateTime createDate;
 
 	public Member(String username) {
 		this(username, 0);
